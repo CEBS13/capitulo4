@@ -1,0 +1,485 @@
+---
+title: "Encuesta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Cambios realizados
+ cambiar a factor los valores enteros
+ colocar los nombres de las columnas por nombres de variable
+ tratar los  NA 
+ tratar los rangos sin respuestas a 0 respuestas
+ tratar los valores atipicos
+ tratar las respuestas de las preguntas abiertas
+
+## Cargando Encuesta 
+
+
+```{r}
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(jsonlite)
+
+setwd("C:/Users/cesar/Programming/Capitulo 4 encuesta/Encuesta Seminario.csv")
+survey <- read.csv("Encuesta Seminario.csv",header = T, sep = ",", encoding = "UTF-8")
+stop_words_spanish <- read.delim("stop_words_spanish.txt", header = TRUE, sep = "\n", encoding = "UTF-8")
+
+```
+
+## Numero de columnas
+```{r}
+
+ncol(survey)
+```
+## Numero de filas
+
+```{r}
+nrow(survey)
+```
+
+
+## Resumen de los datos
+str(survey)
+summary(survey) 
+## Limpiando nombres de columna
+### borramos la columna de portafolio ya que debido a la mala redaccion no obtuvimos respuestas que nos fueran a servir
+
+```{r}
+names(survey)
+my.names <- names(survey)
+
+
+columnas_a_tratar <- my.names[!(names(survey) %in% c("portafolio"))]
+df <- data.frame(columna.name = columnas_a_tratar)
+df$columna.name
+
+
+write.csv(df,"column_names.csv", row.names=FALSE)
+
+column_names <- read.csv("column_names_clean.csv",header = T, sep = ",")
+
+column_names$translation
+names(survey)
+
+names(survey) <- column_names$translation
+
+names(survey)
+```
+
+## Pasando a factor:
+
+
+### edad
+```{r}
+str(survey$edad)
+survey$edad <- as.factor(survey$edad)
+str(survey$edad)
+```
+### promedio_graduacion
+```{r}
+str(survey$promedio_graduacion)
+survey$promedio_graduacion <- as.factor(survey$promedio_graduacion)
+str(survey$promedio_graduacion)
+```
+### clases_por_periodo
+
+```{r}
+
+str(survey$clases_por_periodo)
+survey$clases_por_periodo <- as.factor(survey$clases_por_periodo)
+str(survey$clases_por_periodo)
+```
+
+### tiempo_graduacion
+
+```{r}
+str(survey$tiempo_graduacion)
+survey$tiempo_graduacion <- as.factor(survey$tiempo_graduacion)
+str(survey$tiempo_graduacion)
+```
+
+
+### anio_graduacion
+
+```{r}
+survey$anio_graduacion 
+survey$anio_graduacion <- as.factor(survey$anio_graduacion)
+str(survey$anio_graduacion)
+```
+
+### mes_graduacion
+
+
+```{r}
+survey$mes_graduacion 
+survey$mes_graduacion <- as.factor(survey$mes_graduacion)
+str(survey$mes_graduacion)
+```
+
+### nivel_ingles
+
+```{r}
+survey$nivel_ingles
+survey$nivel_ingles <- as.factor(survey$nivel_ingles)
+str(survey$nivel_ingles)
+```
+
+### nivel_programacion
+```{r}
+survey$nivel_programacion
+survey$nivel_programacion <- as.factor(survey$nivel_programacion)
+str(survey$nivel_programacion)
+```
+
+### nivel_redes.
+```{r}
+survey$nivel_redes
+survey$nivel_redes <- as.factor(survey$nivel_redes)
+str(survey$nivel_redes)
+```
+
+### nivel_servidores
+
+```{r}
+survey$nivel_servidores
+survey$nivel_servidores <- as.factor(survey$nivel_servidores)
+str(survey$nivel_servidores)
+```
+
+### nivel_disenio
+
+```{r}
+survey$nivel_disenio
+survey$nivel_disenio <- as.factor(survey$nivel_disenio)
+str(survey$nivel_disenio)
+```
+
+### nivel_admin
+```{r}
+survey$nivel_admin
+survey$nivel_admin <- as.factor(survey$nivel_admin)
+str(survey$nivel_admin)
+```
+### nivel_proactividad
+
+```{r}
+survey$nivel_proactividad
+survey$nivel_proactividad <- as.factor(survey$nivel_proactividad)
+str(survey$nivel_proactividad)
+```
+```{r}
+survey$meses_desempleado
+survey$meses_desempleado <- as.factor(survey$meses_desempleado)
+str(survey$meses_desempleado)
+```
+
+```{r}
+summary(survey)
+```
+## Limpiando columnas binarias que tienen 3 niveles
+### ya que solo una pregunta de tipo binaria fue dejada opcional sabemos que solo  esa pregunta nos ocasiona un problema de valor vacio
+
+```{r}
+unique(survey$trabajo_ingeniero_sistemas) %in% c("No", "Sí", "")
+
+
+si_no <- c()
+
+for (myname in names(survey)){
+
+    
+    validations <-sum(unique(survey[,myname]) %in% c("No", "Sí", ""))
+    if(validations == 3){
+    si_no <- c(si_no,myname)
+    }
+}
+
+table(survey[, si_no[1] ])
+```
+
+## Imputando
+### segun la tabla vemos que la mayoria de las respuestas fueron que si pero segun respuestas anteriores vemos que las respuestas vacias son de estudiantes que no trabajan, seria un error anadir esas personas en cualquiera de las dos columnas, por eso vamos a crear una tercera columna llamada "actualmente no labora"
+
+```{r}
+
+
+unique(survey$trabajo_ingeniero_sistemas)
+
+unique(survey$trabajo_ingeniero_sistemas) %in% c("No", "Sí", "")
+
+survey[!(survey$trabajo_ingeniero_sistemas == ""),]
+
+
+(names(survey$trabajo_ingeniero_sistemas))
+
+
+
+
+survey$trabajo_ingeniero_sistemas <- as.character(survey$trabajo_ingeniero_sistemas)
+
+
+for (col in si_no){
+  survey[ survey[,col] == "", col] <- "actualmente no labora"
+}
+
+survey$trabajo_ingeniero_sistemas <- as.factor(survey$trabajo_ingeniero_sistemas)
+
+```
+
+## Limpiando valores nulos
+```{r}
+summary(survey)
+na.summay <- c()
+
+for( myname in names(survey)){
+  print(myname)
+  
+  s <- as.data.frame(prop.table(table(is.na(survey[,myname]))))
+  operacion <- s %>% filter(Var1 == TRUE) %>% select(Freq)
+  
+  df_temp <- data.frame( 
+    column.name=c(myname),  
+    na.percentage = ifelse( length(operacion$Freq) == 0, 0, operacion$Freq[1] )
+  )
+  
+  na.summay <- rbind(na.summay,df_temp)
+
+  
+}
+```
+## valores nulos en anio_graduiacion
+### se encontraron dos valores nulos en anio_graduacion se anadiran al valor de la media
+```{r}
+na.summay %>% arrange(-na.percentage) %>% filter(na.percentage > 0)
+
+survey$anio_graduacion <- as.integer(survey$anio_graduacion)
+x <- survey %>% filter(!is.na(anio_graduacion))
+media <- median(x$anio_graduacion)
+survey[is.na(survey$anio_graduacion),"anio_graduacion"] <- media
+survey$anio_graduacion <- as.factor(survey$anio_graduacion)
+```
+
+
+## valores nulos mes_graduacion
+### se encontro un na en mes_graduacion se anadieron al valor de la media
+
+```{r}
+survey$mes_graduacion <- as.integer(survey$mes_graduacion)
+x <- survey %>% filter(!is.na(mes_graduacion))
+
+media <- median(x$mes_graduacion)
+survey[is.na(survey$mes_graduacion),"mes_graduacion"] <- media
+survey$mes_graduacion <- as.factor(survey$mes_graduacion)
+```
+
+
+
+## Limpiando nombres de procedencia
+
+### Limpiando tegucigalpa
+```{r}
+
+
+tegus <- c("Tegucigalpa","Tegucigalpa ","Tegucigalpa, Francisco Morazan","Tegucigalpa M. D. C", "Tegucigalpa M.D.C.", "FM", "Francisco Morazan")
+
+
+unique(survey$procedencia) %in% tegus
+unique(survey$procedencia) %in% c("Tegucigalpa M.D.C")
+
+sum(unique(survey[,myname]) %in% c("No", "Sí", ""))
+
+
+tegus_repetidos <- c()
+
+for (myname in names(survey)){
+
+    
+    validations <-sum(unique(survey[,myname]) %in% tegus)
+    if(validations == 7){
+    tegus_repetidos <- c(tegus_repetidos,myname)
+    }
+}
+
+
+survey$procedencia <- as.character(survey$procedencia)
+
+for (col in tegus_repetidos ){
+  survey[ survey[,col] %in% tegus, col] <- "Tegucigalpa"
+}
+
+survey$procedencia <- as.factor(survey$procedencia)
+
+
+```
+
+### Limpiando el paraiso
+
+```{r}
+
+paraiso <- c("El Paraíso","El paraíso, El Paraíso")
+
+
+unique(survey$procedencia) %in% paraiso
+
+
+paraiso_repetidos <- c()
+
+for (myname in names(survey)){
+
+    
+    validations <-sum(unique(survey[,myname]) %in% paraiso)
+    if(validations == 2){
+    paraiso_repetidos <- c(paraiso_repetidos,myname)
+    }
+}
+
+
+survey$procedencia <- as.character(survey$procedencia)
+
+for (col in paraiso_repetidos ){
+  survey[ survey[,col] %in% paraiso, col] <- "El Paraiso"
+}
+
+survey$procedencia <- as.factor(survey$procedencia)
+
+
+```
+
+
+
+
+## tokenizando respuestas a las preguntas abiertas de las herramientas que aprendio en la u y las herramientas que aprendio solo
+### debido al formato de estas preguntas vemos que estan separadas por coma y la mayoria solamente tienen los nombres de las tecnologias, decidimos que tokenizar es la mejor idea
+```{r}
+
+mock_data <- survey$tecnologias_unah
+copia_survey <- survey
+
+mock_data <- as.character(mock_data)
+mock_data <- tolower(mock_data)
+mock_data <- as.vector(mock_data)
+mock_data <- str_replace_all(mock_data, fixed(", "), ",")
+mock_data <- str_replace_all(mock_data, fixed(" ,"), ",")
+mock_data <- str_replace_all(mock_data, fixed("."), "")
+mock_data <- str_replace_all(mock_data, fixed("\U0001f923"), "")
+mock_data <- str_squish(mock_data)
+
+mock_data <- strsplit(mock_data, ",")
+
+survey$tecnologias_unah <- mock_data
+
+
+
+```
+
+### Tokenizando tecnologias aprendidas fuera de la unah
+
+
+```{r}
+
+
+fuera_unah <- survey$tecnologias_autodidacta
+copia_survey <- survey
+
+fuera_unah <- as.character(fuera_unah)
+fuera_unah <- tolower(fuera_unah)
+fuera_unah <- as.vector(fuera_unah)
+fuera_unah <- str_replace_all(fuera_unah, fixed(", "), ",")
+fuera_unah <- str_replace_all(fuera_unah, fixed(" ,"), ",")
+fuera_unah <- str_replace_all(fuera_unah, fixed("."), "")
+fuera_unah <- str_squish(fuera_unah)
+
+fuera_unah <-strsplit(fuera_unah, ",")
+
+survey$tecnologias_autodidacta <- fuera_unah
+
+```
+
+## Limpieza de herramientas en la industria
+
+
+
+data_industria <- survey$tecnologias_mercado_laboral
+copia_survey <- survey
+stop_words <- as.data.frame(stop_words_spanish, column = 'value')
+names(stop_words)[1] <- 'value'
+
+
+data_industria <- as.character(data_industria)
+data_industria <- tolower(data_industria)
+data_industria <- as.vector(data_industria) 
+data_industria <- str_replace_all(data_industria, fixed("("), " ")
+data_industria <- str_replace_all(data_industria, fixed(")"), " ")
+data_industria <- str_replace_all(data_industria, fixed(", "), ",")
+data_industria <- str_replace_all(data_industria, fixed(" ,"), ",")
+data_industria <- str_replace_all(data_industria, fixed("."), "")
+data_industria <- str_replace_all(data_industria, fixed(","), "")
+data_industria <- str_squish(data_industria)
+data_industria <- strsplit(data_industria, " ")
+  data_industria[vectors] <-  anti_join(data_industria,stop_words, by='value')
+
+
+
+data_industria <- as.character(data_industria)
+
+text_df <- tibble(line = 1:59, text = data_industria)
+
+summary(text_df)
+
+str(data_industria)
+
+
+text <- data_industria
+class(data_industria)
+
+df_text <- unnest_tokens(word, text)
+  
+  
+df_text <- text_df %>%
+          unnest_tokens(word, text) %>%
+           anti_join(stop_words_spanish) %>%
+           count(word, sort = TRUE)
+  
+  
+
+df_text <- unnest_tokens(word, text) %>%
+           anti_join(stop_words_spanish)
+
+
+df_text <- df_text %>% 
+           unnest_tokens(word, text) %>%
+           anti_join(stop_words_spanish)
+
+df_text <- as.vector(df_text)
+
+data_industria <- df_text
+
+
+copia_survey$tecnologias_mercado_laboral <- data_industria
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
