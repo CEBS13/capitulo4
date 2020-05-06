@@ -399,7 +399,7 @@ survey$tecnologias_autodidacta <- fuera_unah
 ```
 
 ## Limpieza de herramientas en la industria
-
+```{r}
 
 
 data_industria <- survey$tecnologias_mercado_laboral
@@ -416,10 +416,28 @@ data_industria <- str_replace_all(data_industria, fixed(")"), " ")
 data_industria <- str_replace_all(data_industria, fixed(", "), ",")
 data_industria <- str_replace_all(data_industria, fixed(" ,"), ",")
 data_industria <- str_replace_all(data_industria, fixed("."), "")
-data_industria <- str_replace_all(data_industria, fixed(","), "")
+data_industria <- str_replace_all(data_industria, fixed(","), " ")
 data_industria <- str_squish(data_industria)
 data_industria <- strsplit(data_industria, " ")
+
+```
   data_industria[vectors] <-  anti_join(data_industria,stop_words, by='value')
+
+as_tibble(data_industria)
+
+data_industria["fortaleza",]
+
+nuevo <- unlist(data_industria)
+nuevo <- as_tibble(nuevo)
+nuevo <- anti_join(nuevo,stop_words)
+
+
+for(column in 1:59){
+  for()
+  data_industria[[column]][2]
+  
+}
+
 
 
 
