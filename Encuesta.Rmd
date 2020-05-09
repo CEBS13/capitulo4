@@ -22,6 +22,8 @@ library(dplyr)
 library(tidytext)
 library(stringr)
 library(jsonlite)
+library(reshape2)
+library(ggplot2)
 
 setwd("C:/Users/cesar/Programming/Capitulo 4 encuesta/Encuesta Seminario.csv")
 survey <- read.csv("Encuesta Seminario.csv",header = T, sep = ",", encoding = "UTF-8")
@@ -67,6 +69,7 @@ names(survey)
 names(survey) <- column_names$translation
 
 names(survey)
+survey$clases_por_periodo
 ```
 
 ## Pasando a factor:
@@ -420,6 +423,8 @@ data_industria <- str_replace_all(data_industria, fixed(","), " ")
 data_industria <- str_squish(data_industria)
 data_industria <- strsplit(data_industria, " ")
 
+survey$tecnologias_mercado_laboral <- data_industria
+
 ```
   data_industria[vectors] <-  anti_join(data_industria,stop_words, by='value')
 
@@ -478,12 +483,561 @@ data_industria <- df_text
 
 copia_survey$tecnologias_mercado_laboral <- data_industria
 
+## Grafica trabajo por carrera, trabaja en la pratica, trabaja en area preferencia 
+```{r}
+
+###
+
+nombre_columnas <- c(rep("gustar_practica" , 2),  rep("ofrecieron_trabajo_practica" , 2)
+                     ,rep("trabajo_practica" , 2) ,rep("conocimientos_ayudaron" , 2),
+                     rep("trabajo_pre_graduacion", 2))
+
+condicion <- rep(c("Si","No"), 5)
+
+valor_gustar_practica <- prop.table(table(survey$gustar_practica))
+valor_ofrecieron_trabajo_practica <- prop.table(table(survey$ofrecieron_trabajo_practica))
+valor_trabajo_practica <- prop.table(table(survey$trabajo_practica))
+valor_conocimientos_ayudaron <- prop.table(table(survey$conocimientos_ayudaron))
+valor_trabajo_pre_graduacion <- prop.table(table(survey$trabajo_pre_graduacion))
+
+valor <- c(valor_gustar_practica[[2]], valor_gustar_practica[[1]],
+           valor_ofrecieron_trabajo_practica[[2]],valor_ofrecieron_trabajo_practica[[1]],
+           valor_trabajo_practica[[2]], valor_trabajo_practica[[1]],
+           valor_conocimientos_ayudaron[[2]], valor_conocimientos_ayudaron[[1]],
+           valor_trabajo_pre_graduacion[[2]], valor_trabajo_pre_graduacion[[1]]) 
+
+df_plot_preguntas <- data.frame(nombre_columnas, condicion, valor)
+library(viridis)
+library(hrbrthemes)
+
+ggplot(df_plot_preguntas, aes(fill=condicion, y=valor, x=condicion)) + 
+    geom_bar(position="dodge", stat="identity") +
+    scale_fill_viridis(discrete = T, option = "E") +
+    facet_wrap(~nombre_columnas) +
+    theme(legend.position="none") +
+    xlab("")
+
+ggsave("valores_categoricos.png")
+
+```
+
+
+## Hardskills
+
+```{r}
+
+survey$nivel_autodidacta
+
+nombre_columnas <- c(rep("nivel_ingles" , 5),  rep("nivel_programacion" , 5)
+                     ,rep("nivel_redes" , 5) ,rep("nivel_disenio" , 5),
+                     rep("nivel_admin", 5))
+
+condicion <- rep(c("poco","mas que poco","neutro","bien","muy bien"), 5)
+
+valor_nivel_ingles <- prop.table(table(survey$nivel_ingles))
+valor_nivel_programacion <- prop.table(table(survey$nivel_programacion))
+valor_nivel_redes <- prop.table(table(survey$nivel_redes))
+valor_nivel_disenio <- prop.table(table(survey$nivel_disenio))
+valor_nivel_admin <- prop.table(table(survey$nivel_admin))
+
+valor_nivel_ingles[[2]]
+
+valor <- c(valor_nivel_ingles[[1]], valor_nivel_ingles[[2]],valor_nivel_ingles[[3]],valor_nivel_ingles[[4]],valor_nivel_ingles[[5]],
+           0.0,valor_nivel_programacion[[1]],valor_nivel_programacion[[2]],valor_nivel_programacion[[3]],valor_nivel_programacion[[4]],
+           valor_nivel_redes[[1]],valor_nivel_redes[[2]],valor_nivel_redes[[3]],valor_nivel_redes[[4]],0.0,
+           valor_nivel_disenio[[1]],valor_nivel_disenio[[2]],valor_nivel_disenio[[3]],valor_nivel_disenio[[4]],valor_nivel_disenio[[5]],
+           valor_nivel_admin[[1]],valor_nivel_admin[[2]],valor_nivel_admin[[3]],valor_nivel_admin[[4]],valor_nivel_admin[[5]]) 
+
+df_plot_hs <- data.frame(nombre_columnas, condicion, valor)
+
+ggplot(df_plot_hs, aes(fill=condicion, y=valor, x=nombre_columnas)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    coord_flip()
+ggsave("hardskills.png")
+
+
+```
+
+## Histograma edades
+```{r}
+
+survey$edad <- as.numeric(paste(survey$edad))
+
+ggplot(data=survey, aes(edad)) + geom_bar(stat="count") + labs(x ="Edades", y= "Conteo")
+
+ggsave("barplot-edades.png")
+
+prop.table(table(survey$edad))
+```
+
+## Genero 
+```{r}
+library(RColorBrewer)
+
+survey$genero <- as.factor(survey$genero)
+
+ggplot(data=survey, aes(as.factor(genero) )) + geom_bar(color="blue", fill=rgb(0.1,0.4,0.5,0.7), aes(y=..prop.., group = 1)) + labs(x ="Genero", y= "Pocentaje") 
+  
+  
+  
+
+ggsave("barplot-genero.png")
+
+```
+
+
+
+```{r}
+
+tabla_procedencia <- sort(prop.table(table(survey$procedencia)), decreasing=T)
+
+write.table(tabla_procedencia, file = "procedencia_tabla.txt", sep = ",", quote = FALSE, row.names = F)
+
+```
+
+## Rendimiento Universitario 
+```{r}
+survey$excelencia_academica 
+
+nombre_columnas <- c(rep("eleccion_estudio" , 2),  rep("carrera_simultanea" , 2)
+                     ,rep("cambio_carrera" , 2) ,rep("becado" , 2),
+                     rep("excelencia_academica", 2))
+
+condicion <- rep(c("Si","No"), 5)
+
+valor_eleccion_estudio <- prop.table(table(survey$eleccion_estudio))
+valor_carrera_simultanea <- prop.table(table(survey$carrera_simultanea))
+valor_cambio_carrera <- prop.table(table(survey$cambio_carrera))
+valor_becado <- prop.table(table(survey$becado))
+valor_excelencia_academica <- prop.table(table(survey$excelencia_academica))
+
+valor_nivel_ingles[[2]]
+
+valor <- c(valor_eleccion_estudio[[2]], valor_eleccion_estudio[[1]],
+           valor_carrera_simultanea[[2]],valor_carrera_simultanea[[1]],
+           valor_cambio_carrera[[2]],valor_cambio_carrera[[1]],
+           valor_becado[[2]],valor_becado[[1]],
+           valor_excelencia_academica[[2]],valor_excelencia_academica[[1]]) 
+
+df_plot_ru <- data.frame(nombre_columnas, condicion, valor)
+
+ggplot(df_plot_ru, aes(fill=condicion, y=valor, x=nombre_columnas)) + 
+    geom_bar(position="dodge", stat="identity") + 
+  labs(y = "Porcentaje") +
+    coord_flip()
+
+
+ggsave("becado.png")
+
+```
+
+Promedio graduacion
+```{r}
+survey$promedio_graduacion[[21]] <- 78
+survey$promedio_graduacion <- as.numeric(paste(survey$promedio_graduacion))
+
+
+summary(survey$promedio_graduacion)
+
+ggplot(survey, aes(y=promedio_graduacion)) + geom_boxplot(aes(x = factor(1)))
+
+
+ggsave("boxplot_promedio_graduacion.png")
+
+
+
+```
+
+
+## Trabajaste y estudiaste
+```{r}
+survey$trabajo_y_estudio
+
+ggplot(data=survey, aes(as.factor(trabajo_y_estudio) )) + geom_bar(color="blue", fill=rgb(0.1,0.5,0.4,0.7), aes(y=..prop.., group = 1)) +
+  ylim(0.0,0.7) + labs(x ="Trabajo y estudio", y= "Porcentaje") 
+
+ggsave("trabajo_y_estudio.png")
+
+```
+
+
+## Clases por periodo
+```{r}
+
+ggplot(data=survey, aes(as.factor(clases_por_periodo))) + geom_bar(color="blue", fill=rgb(0.1,0.5,0.4,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="clases por periodo", y= "Porcentaje") 
+ ggsave("barplot_clases_por_periodo.png")
+
+```
+
+
+## cuanto tardaste en graduarte
+
+```{r}
+prop.table(table(survey$tiempo_graduacion))
+ggplot(data=survey, aes(as.factor(tiempo_graduacion))) + geom_bar(color="black", fill=rgb(0.2,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="Tiempo graduacion", y= "Porcentaje") +
+  ylim(0.0, 0.35)
+ ggsave("barplot_tiempo_graduacion.png")
+ 
+
+
+```
+
+
+## Los ingenieros eran buenos
+
+```{r}
+
+survey$rendimiento_docente
+ggplot(data=survey, aes(as.factor(rendimiento_docente))) + geom_bar( color="black", fill=rgb(0.2,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="rendimiento docente", y= "Porcentaje") +
+   theme(axis.text.x = element_text(angle = 90)) +
+  ylim(0.0,0.4)+
+  coord_flip()
+ggsave("barplot_rendimiento_docente.png")
+
+
+
+```
+
+
+
+```{r}
+survey$calidad_contenido
+
+ggplot(data=survey, aes(as.factor(calidad_contenido))) + geom_bar( color="black", fill=rgb(0.4,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="Calidad contenido", y= "Porcentaje") +
+  ylim(0.0,0.6)
+  
+ggsave("calidad_contenido.png")
 
 
 
 
 
+```
 
+## tecnologias autodidacta
+```{r}
+
+tecnologias <- unlist(survey$tecnologias_autodidacta)
+
+data_tec_auto <- head(sort(table(tecnologias), decreasing = T), 10)
+data_tec_auto <- as.data.frame(data_tec_auto)
+
+ggplot(data=data_tec_auto, aes(fill=tecnologias, x=tecnologias, y=Freq)) + geom_bar( stat="identity", color="black", fill=rgb(0.4,0.2,0.5,0.7)) + aes(fill=tecnologias) +
+ labs(x ="Tecnologias autodidacta", y= "cantidad encontradas") 
+
+ggsave("tecnologias_auto.png")
+
+
+
+```
+
+
+## tecnologias unah
+```{r}
+tec_unah <- unlist(survey$tecnologias_unah)
+tec_unah <- head(sort(table(tec_unah), decreasing = T), 10)
+
+data_tec_unah <- as.data.frame(tec_unah)
+
+ggplot(data=data_tec_unah, aes(fill=tec_unah, x=tec_unah, y=Freq)) + geom_bar( stat="identity", color="black", fill=rgb(0.4,0.2,0.1,0.7)) + aes(fill=tec_unah) +
+ labs(x ="Tecnologias unah", y= "cantidad encontradas") 
+ggsave("tecnologias_unah.png")
+
+```  
+
+
+## tecnologias mercado
+```{r}
+
+tec_mercado <- unlist(survey$tecnologias_mercado_laboral)
+
+
+class(tec_mercado)
+tec_mercado <- as.data.frame(tec_mercado)
+names(stop_words_spanish)[1] <- 'value'
+names(tec_mercado)[1] <- 'value'
+
+tec_mercado <-  anti_join(tec_mercado,stop_words_spanish)
+
+data_tec_mercado <- head(sort(table(tec_mercado), decreasing = T), 10)
+
+data_tec_mercado <- as.data.frame(data_tec_mercado)
+
+ggplot(data=data_tec_mercado, aes(fill=tec_mercado, x=tec_mercado, y=Freq)) + geom_bar( stat="identity", color="black", fill=rgb(0.2,0.3,0.2,0.7)) + aes(fill=tec_mercado) +
+  coord_flip()
+ labs(x ="Tecnologias Mercado", y= "cantidad encontradas")
+
+ggsave("tecnologias_mercado.png")
+
+
+
+```
+
+
+
+## Actividades extra curriculares
+```{r}
+
+survey$actividades_extracurriculares
+
+ggplot(data=survey, aes(as.factor(actividades_extracurriculares) )) + geom_bar(color="black", fill=rgb(0.2,0.5,0.4,0.7), aes(y=..prop.., group = 1)) +
+  ylim(0.0,0.7) + labs(x ="actividades extracurriculares", y= "Porcentaje") 
+ggsave("actividades_extracurriculares.png")
+
+```
+
+
+
+## Areas que menos te gustaron de ingenieria en sistemas
+```{r}
+data <- survey$areas_no_favoritas
+data <- as.character(data)
+data <- unlist(strsplit(data, ";"))
+data <- as.factor(data)
+data <- prop.table(table(data))
+data[[1]]
+column_name <- c("Administracion","Electroncia", "Programacion", "Redes")
+value <- c(data[[1]],data[[2]],data[[3]], data[[4]])
+
+df_data <- data.frame(column_name, value)
+
+ggplot(df_data, aes(x=column_name, y=value)) + geom_bar(stat="identity", color="black", fill=rgb(0.2,0.7,0.4,0.7)) + aes(fill=column_name) +
+  ylim(0.0,0.6) + labs(x ="Areas de menos interes", y= "Porcentaje") 
+ggsave("areas_no_favoritas.png")
+
+
+
+```
+
+
+## areas que mas te gustaron
+```{r}
+survey$areas_favoritas
+
+data <- survey$areas_favoritas
+data <- as.character(data)
+data <- unlist(strsplit(data, ";"))
+
+data <- prop.table(table(data))
+data[[1]]
+column_name <- c("Administracion","Electroncia", "Programacion", "Redes")
+value <- c(data[[1]],data[[2]],data[[3]], data[[4]])
+
+df_data <- data.frame(column_name, value)
+
+ggplot(df_data, aes(x=column_name, y=value)) + geom_bar(stat="identity", color="black", fill=rgb(0.2,0.7,0.7,0.7)) + aes(fill=column_name) +
+  ylim(0.0,0.6) + labs(x ="Areas de mas interes", y= "Porcentaje") 
+ggsave("areas_favoritas.png")
+
+```
+
+## Practica profesional
+```{r}
+
+survey$preparacion_practica
+ggplot(data=survey, aes(as.factor(preparacion_practica) )) + geom_bar(color="black", fill=rgb(0.2,0.5,0.4,0.7), aes(y=..prop.., group = 1)) +
+  ylim(0.0,0.7) + labs(x ="Preparacion practica", y= "Porcentaje") 
+ggsave("preparacion_practica.png")
+
+```
+
+
+# anio graduacion
+
+```{r}
+
+survey$anio_graduacion <- as.numeric(paste(survey$anio_graduacion ))
+
+summary(survey$anio_graduacion)
+survey$anio_graduacion[[55]] <- 2018
+
+ ggplot(survey, aes(y=anio_graduacion)) + geom_boxplot(aes(x = factor(1))) +
+  ylim(2015,2021)
+
+ggsave("anio_graduacion.png")
+
+
+```
+
+
+## mes graduacion
+
+```{r}
+
+survey$mes_graduacion <- as.numeric(paste(survey$mes_graduacion ))
+
+
+ ggplot(survey, aes(y=mes_graduacion)) + geom_boxplot(aes(x = factor(1))) +
+  ylim(0.5,14)
+
+ggsave("mes_graduacion.png")
+
+```
+
+
+
+```{r}
+
+
+
+survey$trabajo_por_carrera
+
+ggplot(data=survey, aes(as.factor(trabajo_por_carrera))) + geom_bar( color="black", fill=rgb(0.4,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="trabajo en algo relacionado a la carrera", y= "Porcentaje") +
+  ylim(0.0,0.6)
+ggsave("trabajo_carrera.png")
+
+```
+
+
+
+
+```{r}
+survey$actualizacion_tecnologias
+ggplot(data=survey, aes(as.factor(actualizacion_tecnologias))) + geom_bar( color="black", fill=rgb(0.4,0.5,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="actualizacion tecnologias", y= "Porcentaje") 
+ggsave("actualizacion_tecnologias.png")
+
+```
+
+```{r}
+
+survey$trabajo_actual
+ggplot(data=survey, aes(as.factor(trabajo_actual))) + geom_bar( color="black", fill=rgb(0.4,0.5,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="trabajo_actual", y= "Porcentaje") 
+ggsave("trabajo_actual.png")
+
+
+
+```
+
+
+```{r}
+
+survey$trabajo_ingeniero_sistemas
+ggplot(data=survey, aes(as.factor(trabajo_ingeniero_sistemas))) + geom_bar( color="black", fill=rgb(0.4,0.2,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="trabajo relacionado a ing. sistemas", y= "Porcentaje") 
+ggsave("trabajo_ingeniero_sistemas.png")
+
+
+
+```
+```{r}
+
+
+survey$meses_desempleado
+survey$meses_desempleado[[55]] <- 2
+data_desempleo <- prop.table(table(survey$meses_desempleado))
+
+data_desempleo <- data.frame(data_desempleo)
+
+
+ggplot(data=data_desempleo, aes(x=Var1, y=Freq)) + geom_bar( stat="identity", color="black", fill=rgb(0.4,0.2,0.1,0.7), aes(fill=Var1)) +
+ labs(x ="desempleo", y= "Porcentaje") 
+ggsave("desempleo.png")
+
+
+```
+
+```{r}
+
+survey$lider_proyectos
+ggplot(data=survey, aes(as.factor(lider_proyectos))) + geom_bar( color="black", fill=rgb(0.4,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="lider_proyectos", y= "Porcentaje") 
+ggsave("trabajo_ingeniero_sistemas.png")
+
+```
+```{r}
+
+
+survey$nivel_proactividad
+data_proactividad <- prop.table(table(survey$nivel_proactividad))
+
+data_proactividad <- data.frame(data_proactividad)
+
+
+ggplot(data=data_proactividad, aes(x=Var1, y=Freq)) + geom_bar( stat="identity", color="black", fill=rgb(0.4,0.2,0.1,0.7), aes(fill=Var1)) +
+ labs(x ="nivel proactividad", y= "Porcentaje") 
+ggsave("proactividad.png")
+
+
+```
+
+
+
+
+
+```{r}
+
+survey$negociador
+
+data_autodidacta <- prop.table(table(survey$nivel_autodidacta))
+
+data_autodidacta <- data.frame(data_autodidacta)
+
+
+ggplot(data=survey, aes(as.factor(nivel_autodidacta))) + geom_bar( color="black", fill=rgb(0.4,0.3,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="nivel autodidacta", y= "Porcentaje") 
+ggsave("nivel_autodidacta.png")
+
+data_expositor <- prop.table(table(survey$expositor))
+
+data_expositor <- data.frame(data_expositor)
+
+
+ggplot(data=survey, aes(as.factor(expositor))) + geom_bar( color="black", fill=rgb(0.4,0.1,0.1,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="expositor", y= "Porcentaje") 
+ggsave("nivel_expositor.png")
+
+
+
+
+data_negociador <- prop.table(table(survey$negociador))
+data_negociador <- data.frame(data_negociador)
+
+
+p <- ggplot(data=survey, aes(as.factor(negociador))) + geom_bar( color="black", fill=rgb(0.4,0.1,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="negociador", y= "Porcentaje") 
+ggplotly(p)
+ggsave("negociador.png")
+
+
+survey$irritabilidad
+
+ggplot(data=survey, aes(as.factor(lider))) + geom_bar( color="black", fill=rgb(0.4,0.6,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="lider", y= "Porcentaje") 
+ggsave("lider.png")
+
+
+
+ggplot(data=survey, aes(as.factor(introvertido))) + geom_bar( color="black", fill=rgb(0.4,0.5,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="introvertido", y= "Porcentaje") 
+ggsave("introvertido.png")
+
+
+
+ggplot(data=survey, aes(as.factor(competitivo))) + geom_bar( color="black", fill=rgb(0.4,0.1,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="competitivo", y= "Porcentaje") 
+ggsave("competitivo.png")
+
+
+
+ggplot(data=survey, aes(as.factor(irritabilidad))) + geom_bar( color="black", fill=rgb(0.4,0.4,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="irritabilidad", y= "Porcentaje") 
+ggsave("irritabilidad.png")
+
+
+survey$trabajo_area_preferencia
+ggplot(data=survey, aes(as.factor(trabajo_area_preferencia))) + geom_bar( color="black", fill=rgb(0.4,0.4,0.3,0.7), aes(y=..prop.., group = 1)) +
+ labs(x ="trabaja en el area de preferencia", y= "Porcentaje") 
+ggsave("trabajo_area_preferencia.png")
+
+
+```
 
 
 
